@@ -8,7 +8,7 @@ class ChatbotError(Exception):
     pass
 
 class Chatbot:
-    def __init__(self, filepath):
+    def __init__(self, filepath, threshold=0.1):
         try:
             self.data = pd.read_csv(filepath)
         except FileNotFoundError:
@@ -19,12 +19,20 @@ class Chatbot:
 
         self.vectorizer = TfidfVectorizer()
         self.question_vectors = self.vectorizer.fit_transform(self.data['question'])
+        self.threshold = threshold
+        self.no_info_message = "Sorry - I don't have info on this topic."
 
     def get_response(self, query):
         query_vector = self.vectorizer.transform([query])
         similarities = cosine_similarity(query_vector, self.question_vectors)
-        most_similar_index = np.argmax(similarities)
-        return self.data['answer'].iloc[most_similar_index]
+
+        highest_score = np.max(similarities)
+
+        if highest_score < self.threshold:
+            return self.no_info_message
+        else:
+            most_similar_index = np.argmax(similarities)
+            return self.data['answer'].iloc[most_similar_index]
 
 # Example usage (optional, for testing)
 if __name__ == '__main__':
